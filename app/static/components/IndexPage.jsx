@@ -1,0 +1,162 @@
+import ReactDOM from "react-dom";
+import React from "react";
+import { ContentsWrapper, Wrapper, Titlebar, Sidebar } from "./SubComponents";
+import { Redirect } from "react-router";
+import $ from "jquery";
+const os = window.require("os");
+const { ipcRenderer } = window.require("electron");
+const remote = window.require("electron").remote;
+const { channels } = window;
+
+export default class Index extends React.Component {
+	constructor(props) {
+		super(props);
+		this.downloadInit = "<h2>VÀO GAME</h2><h3>Phiên bản 1.12.2</h3>";
+		this.prog = "Đang tải thông tin phiên bản...";
+		this.isNoticing = false;
+        this.minRam = 2000;
+        this.maxRam = os.totalmem() / 1024 / 1024;
+		this.state = {memory: this.minRam};
+
+		var color = "#35c467";
+		var color2 = "#c92430";
+		var color3 = "#2877ed";
+
+		ipcRenderer.on(channels.download.response, (e, d) => {
+			var btn = $("#play-button");
+			if (d) {
+				btn.css("background-color", color);
+				btn.css("box-shadow", `-1px 2px 33px 1px ${color}`);
+			} else {
+				if (this.isNoticing) return;
+				this.isNoticing = true;
+				btn.css("background-color", color2);
+				btn.css("box-shadow", `-1px 2px 33px 1px ${color2}`);
+				btn.html("<h2>Bạn đã đang bắt đầu tải!<h2/>");
+				setTimeout(() => {
+					this.isNoticing = false;
+					btn.html(`<h2>${this.prog}</h2>`);
+					btn.css("background-color", color);
+					btn.css("box-shadow", `-1px 2px 33px 1px ${color}`);
+				}, 2000);
+			}
+		});
+
+		ipcRenderer.on(channels.download.progress, (e, progress) => {
+			this.prog = progress;
+			if (!this.isNoticing) {
+				var btn = $("#play-button");
+				btn.html(`<h2>${progress}<h2/>`);
+			}
+		});
+
+		ipcRenderer.on(channels.download.finish, (e, d) => {
+			var btn = $("#play-button");
+
+			btn.html("<h2>Tải game hoàn tất.<h2/>");
+			setTimeout(() => {
+				btn.html("<h2>Bắt đầu vào game...<h2/>");
+			}, 1000);
+
+			setTimeout(() => {
+				btn.html(this.downloadInit);
+				btn.css("background-color", color3);
+				btn.css("box-shadow", `-1px 2px 33px 1px ${color3}`);
+				var window = remote.getCurrentWindow();
+				window.hide();
+			}, 3000);
+		});
+
+		ipcRenderer.on(channels.game.exited, (e) => {
+			var window = remote.getCurrentWindow();
+			window.show();
+		});
+	}
+
+	componentDidMount() {
+		$("#play-button").on("click", (e) => {
+			e.preventDefault();
+			ipcRenderer.send(channels.download.request, this.state);
+		});
+
+		$("#titlebar-close").on("click", (e) => {
+			var window = remote.getCurrentWindow();
+			window.close();
+		});
+
+		$("#titlebar-expand").on("click", (e) => {
+			var window = remote.getCurrentWindow();
+			if (!window.isMaximized()) window.maximize();
+			else window.unmaximize();
+		});
+
+		$("#titlebar-minimize").on("click", (e) => {
+			var window = remote.getCurrentWindow();
+			window.minimize();
+		});
+
+		$("#exit-button").on("click", (e) => {
+			if (this.isNoticing) return;
+			window.localStorage.removeItem("userdata");
+			this.setState({
+				redirect: "/"
+			});
+		});
+	}
+
+    componentDidUpdate() {
+    }
+
+	render() {
+		if (this.state.redirect) return <Redirect to={this.state.redirect} />;
+
+		return (
+			<ContentsWrapper>
+				<Titlebar />
+				<div className="index">
+					<Sidebar />
+					<div className="index-main">
+						<div className="index-top blur-comming-soon">
+							<nav className="index-nav-bar blur-comming-soon">
+								<div className="index-nav-item">
+									<a>Trang chính</a>
+									<div className="index-icon-container">
+										<img id="home-icon" />
+									</div>
+								</div>
+								<div className="index-nav-item">
+									<a>Liên hệ</a>
+									<div class="index-icon-container">
+										<img id="contact-icon" />
+									</div>
+								</div>
+								<div className="index-nav-item">
+									<a>Về chúng tôi</a>
+									<div class="index-icon-container">
+										<img id="about-icon" />
+									</div>
+								</div>
+							</nav>
+						</div>
+
+						<div className="index-bottom index-bottom-temp">
+							<button id="play-button" className="align-middle">
+								<h2>VÀO GAME</h2>
+								<h3>Phiên bản 1.12.2</h3>
+							</button>
+
+                            <div style={{marginTop: "60px", textAlign: "center"}}>
+
+                                <p>{this.state.memory} MB Memory</p>
+                                <input onChange={(e) => {
+                                    this.setState({memory: parseInt(e.target.value)});
+                                }} style={{width: 200}}type="range" min={this.minRam} max={this.maxRam}/>
+                            </div>
+                            
+						</div>
+					</div>
+				</div>
+			</ContentsWrapper>
+		);
+	}
+}

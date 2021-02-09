@@ -1,0 +1,86 @@
+{
+	"name": "pixelmc-launcher",
+	"version": "1.1.1",
+	"description": "Pixel Launcher",
+	"main": "./app/app.js",
+	"productName": "Pixel Launcher",
+	"homepage": "./",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sasanquaa/pixelmc-launcher.git"
+    },
+	"build": {
+		"appId": "vn.pixelmc",
+		"win": {
+			"target": "nsis",
+			"icon": "app/static/media/faviconx256.ico",
+			"publish": {
+				"provider": "github",
+				"token": "6c16c8f4699bffc04c26cbdbe09ec740ac0bce5b"
+			}
+		},
+		"asar": true,
+		"directories": {
+			"output": "release/"
+		},
+		"files": [
+			"build/**/*",
+			"!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+			"!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+			"!**/node_modules/*.d.ts",
+			"!**/node_modules/.bin",
+			"!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+			"!.editorconfig",
+			"!**/._*",
+			"!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+			"!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+			"!**/{appveyor.yml,.travis.yml,circle.yml}",
+			"!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
+			"!.vscode",
+			"!release/",
+			"!.env"
+		]
+	},
+	"scripts": {
+		"start": "set ELECTRON_START_URL=http://localhost:3000 && concurrently \"cross-env BROWSER=none npm run react-start\" \"wait-on http://localhost:3000 && electron .\"",
+		"react-start": "cross-env BROWSER=none react-app-rewired start",
+		"electron-start": "set ELECTRON_START_URL=http://localhost:3000 && electron .",
+		"pack": "electron-builder --dir",
+		"dist": "electron-builder",
+		"package": "react-app-rewired build && rm -rf build/.minecraft/mods && rm -rf build/.minecraft/resourcepacks && rm -rf build/.minecraft/saves && rm -rf build/static/components build/static/html build/static/js/react-entry.js && electron-builder --win -c.extraMetadata.main=build/app.js --publish never",
+		"release": "react-app-rewired build && rm -rf build/.minecraft/mods && rm -rf build/.minecraft/resourcepacks && rm -rf build/.minecraft/saves && rm -rf build/static/components build/static/html build/static/js/react-entry.js && electron-builder --win -c.extraMetadata.main=build/app.js --publish always"
+	},
+	"author": "SASANQUA",
+	"license": "ISC",
+	"dependencies": {
+		"async": "^3.2.0",
+		"electron-updater": "^4.3.5",
+		"extract-zip": "^2.0.1",
+		"jquery": "^3.5.1",
+		"sha1-file": "^2.0.0",
+		"ssl-root-cas": "^1.3.1",
+		"url-join": "^4.0.1",
+		"urljoin": "^0.1.5",
+		"winston": "^3.3.3"
+	},
+	"devDependencies": {
+		"electron": "^11.0.3",
+		"electron-builder": "^22.9.1",
+		"electron-reloader": "^1.0.1",
+		"react": "^17.0.1",
+		"react-dom": "^17.0.1",
+		"react-router-dom": "^5.2.0"
+	},
+	"browserslist": {
+		"production": [
+			">0.2%",
+			"not dead",
+			"not op_mini all"
+		],
+		"development": [
+			"last 1 chrome version",
+			"last 1 firefox version",
+			"last 1 safari version"
+		]
+	}
+}
