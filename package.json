@@ -15,8 +15,7 @@
 			"target": "nsis",
 			"icon": "app/static/media/faviconx256.ico",
 			"publish": {
-				"provider": "github",
-				"token": "6c16c8f4699bffc04c26cbdbe09ec740ac0bce5b"
+				"provider": "github"
 			}
 		},
 		"asar": true,

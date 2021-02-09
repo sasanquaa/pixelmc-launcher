@@ -63,6 +63,10 @@ function mainWindow() {
         autoUpdater.checkForUpdatesAndNotify();
     });
 
+    autoUpdater.on("update-available", () => {
+        autoUpdater.quitAndInstall();
+    });
+
 	mainWin.show();
 }
 

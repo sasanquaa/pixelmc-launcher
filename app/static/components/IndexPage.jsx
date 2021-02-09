@@ -16,7 +16,7 @@ export default class Index extends React.Component {
 		this.isNoticing = false;
         this.minRam = 2000;
         this.maxRam = os.totalmem() / 1024 / 1024;
-		this.state = {memory: this.minRam};
+		this.state = {memory: window.localStorage.getItem("memory") || this.minRam};
 
 		var color = "#35c467";
 		var color2 = "#c92430";
@@ -105,6 +105,7 @@ export default class Index extends React.Component {
 	}
 
     componentDidUpdate() {
+        window.localStorage.setItem("memory", this.state.memory);
     }
 
 	render() {
@@ -150,7 +151,7 @@ export default class Index extends React.Component {
                                 <p>{this.state.memory} MB Memory</p>
                                 <input onChange={(e) => {
                                     this.setState({memory: parseInt(e.target.value)});
-                                }} style={{width: 200}}type="range" min={this.minRam} max={this.maxRam}/>
+                                }} style={{width: 200}}type="range" defaultValue={this.state.memory} min={this.minRam} max={this.maxRam}/>
                             </div>
                             
 						</div>
