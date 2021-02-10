@@ -13,14 +13,23 @@ export default class Index extends React.Component {
 		super(props);
 		this.downloadInit = "<h2>VÀO GAME</h2><h3>Phiên bản 1.12.2</h3>";
 		this.prog = "Đang tải thông tin phiên bản...";
+		this.updateAvailable = null;
 		this.isNoticing = false;
-        this.minRam = 2000;
-        this.maxRam = os.totalmem() / 1024 / 1024;
-		this.state = {memory: window.localStorage.getItem("memory") || this.minRam};
+		this.minRam = 2000;
+		this.maxRam = os.totalmem() / 1024 / 1024;
+		this.state = { memory: window.localStorage.getItem("memory") || this.minRam, updateAvailable: null };
 
 		var color = "#35c467";
 		var color2 = "#c92430";
 		var color3 = "#2877ed";
+
+		ipcRenderer.on(channels.update.available, (e, d) => {
+			this.setState({ ...this.state, updateAvailable: true });
+		});
+
+		ipcRenderer.on(channels.update.unavailable, (e, d) => {
+			this.setState({ ...this.state, updateAvailable: false });
+		});
 
 		ipcRenderer.on(channels.download.response, (e, d) => {
 			var btn = $("#play-button");
@@ -76,6 +85,7 @@ export default class Index extends React.Component {
 	componentDidMount() {
 		$("#play-button").on("click", (e) => {
 			e.preventDefault();
+            if(this.state.updateAvailable == null || this.state.updateAvailable == true) return;
 			ipcRenderer.send(channels.download.request, this.state);
 		});
 
@@ -104,11 +114,12 @@ export default class Index extends React.Component {
 		});
 	}
 
-    componentDidUpdate() {
-        window.localStorage.setItem("memory", this.state.memory);
-    }
+	componentDidUpdate() {
+		window.localStorage.setItem("memory", this.state.memory);
+	}
 
 	render() {
+		var color = "#35c467";
 		if (this.state.redirect) return <Redirect to={this.state.redirect} />;
 
 		return (
@@ -142,18 +153,31 @@ export default class Index extends React.Component {
 
 						<div className="index-bottom index-bottom-temp">
 							<button id="play-button" className="align-middle">
-								<h2>VÀO GAME</h2>
-								<h3>Phiên bản 1.12.2</h3>
+								{this.state.updateAvailable == null ? (
+									<h2> Đang kiểm tra update...</h2>
+								) : this.state.updateAvailable == true ? (
+									<h2> Đang tải update...</h2>
+								) : (
+									<>
+										<h2>VÀO GAME</h2>
+										<h3>Phiên bản 1.12.2</h3>
+									</>
+								)}
 							</button>
 
-                            <div style={{marginTop: "60px", textAlign: "center"}}>
-
-                                <p>{this.state.memory} MB Memory</p>
-                                <input onChange={(e) => {
-                                    this.setState({memory: parseInt(e.target.value)});
-                                }} style={{width: 200}}type="range" defaultValue={this.state.memory} min={this.minRam} max={this.maxRam}/>
-                            </div>
-                            
+							<div style={{ marginTop: "60px", textAlign: "center" }}>
+								<p>{this.state.memory} MB Memory</p>
+								<input
+									onChange={(e) => {
+										this.setState({ memory: parseInt(e.target.value) });
+									}}
+									style={{ width: 200 }}
+									type="range"
+									defaultValue={this.state.memory}
+									min={this.minRam}
+									max={this.maxRam}
+								/>
+							</div>
 						</div>
 					</div>
 				</div>

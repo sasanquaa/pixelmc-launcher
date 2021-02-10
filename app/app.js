@@ -26,7 +26,11 @@ global.channels = {
 	},
 	window: {
 		resize: "window-resize"
-	}
+	},
+    update: {
+        available: "update-available",
+        unavailable: "update-unavailable"
+    }
 };
 
 const startUrl =
@@ -60,10 +64,18 @@ function mainWindow() {
 		mainWin = null;
 	});
     mainWin.on("ready-to-show", () => {
-        autoUpdater.checkForUpdatesAndNotify();
+        autoUpdater.checkForUpdates();
     });
 
     autoUpdater.on("update-available", () => {
+        mainWin.webContents.send(global.channels.update.available);
+    });
+
+    autoUpdater.on("update-not-available", () => {
+        mainWin.webContents.send(global.channels.update.unavailable);
+    })
+
+    autoUpdater.on("update-downloaded", () => {
         autoUpdater.quitAndInstall();
     });
 

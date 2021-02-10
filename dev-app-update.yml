@@ -1,0 +1,4 @@
+owner: sasanquaa
+repo: pixelmc-launcher
+provider: github
+updaterCacheDirName: pixelmc-launcher-updater

@@ -21,6 +21,7 @@ const META_PATH = path.join(GAME_DIR, "versions");
 const ASSETS_PATH = path.join(GAME_DIR, "assets");
 const OBJECTS_PATH = path.join(ASSETS_PATH, "objects");
 const INDEXES_PATH = path.join(ASSETS_PATH, "indexes");
+const LOG_CONFIGS_PATH = path.join(ASSETS_PATH, "log_configs");
 const VERSION_MANIFEST_PATH = path.join(PIXEL_DIR, "version_manifest.json");
 const MC_VERSIONS = {};
 const MC_FORGE_LIBS_URL = "https://pixelmc.vn/api/uploads/forge_libs_57c76af2a3.json";
@@ -59,6 +60,7 @@ var USERNAME;
 var MEMORY;
 var PASSWORD;
 var INDEX_VERSION;
+var LOG_CONFIG;
 var EVENT;
 var DUPLICATE_LIBRARIES = new Set();
 
@@ -83,6 +85,7 @@ function init(appPath) {
 	if (!fs.existsSync(ASSETS_PATH)) fs.mkdirSync(ASSETS_PATH);
 	if (!fs.existsSync(OBJECTS_PATH)) fs.mkdirSync(OBJECTS_PATH);
 	if (!fs.existsSync(INDEXES_PATH)) fs.mkdirSync(INDEXES_PATH);
+	if (!fs.existsSync(LOG_CONFIGS_PATH)) fs.mkdirSync(LOG_CONFIGS_PATH);
 	if (!fs.existsSync(LIB_PATH)) fs.mkdirSync(LIB_PATH);
 	if (!fs.existsSync(META_PATH)) fs.mkdirSync(META_PATH);
 	if (!fs.existsSync(BIN_PATH)) fs.mkdirSync(BIN_PATH);
@@ -529,6 +532,15 @@ async function downloadCustomFolders() {
 		logger.info(`Downloading custom file from: ${folderURL}`);
 		await download(folderURL, folderParentDir);
 	}
+    await downloadConfigurations();
+}
+
+async function downloadConfigurations() {
+    var logURL = MC_FORGE_LIBS["logging"].url;
+    var logName = path.join(LOG_CONFIGS_PATH, MC_FORGE_LIBS["logging"].id);
+    LOG_CONFIG = logName;
+    logger.info(`Downloading logging configuration file from: ${logURL}`);
+    await download(logURL, logName);
 	logger.info("All resources fulfilled, now starting Minecraft...");
 	await startMinecraft();
 }
@@ -574,22 +586,30 @@ async function startMinecraft() {
 		var LIBRARIES_PATH = Array.from(DUPLICATE_LIBRARIES).join(";");
 		var command = [
 			`"${JAVA}"`,
-			`-Xms${MEMORY}M`,
+			`-Xmx${MEMORY}M`,
+            `-XX:+UnlockExperimentalVMOptions`,
+            `-XX:+UseG1GC`,
+            `-XX:G1NewSizePercent=20`,
+            `-XX:G1ReservePercent=20`,
+            `-XX:MaxGCPauseMillis=50`,
+            `-XX:G1HeapRegionSize=32M`,
 			"-cp",
 			`"${LIBRARIES_PATH}"`,
-			`"-Duser.dir=${GAME_DIR}"`,
+            `"-Dlog4j.configurationFile=${LOG_CONFIG}"`,
 			`"-Djava.library.path=${BIN_PATH}"`,
 			`"${MC_FORGE_LIBS["mainClass"]}"`,
-			"--accessToken",
-			`"${PASSWORD}"`,
+			"--username",
+			`"${USERNAME}"`,
+			"--version",
+            `"1.12.2"`,
 			"--gameDir",
 			`"${GAME_DIR}"`,
+			"--accessToken",
+			`"${PASSWORD}"`,
 			"--assetsDir",
 			`"${ASSETS_PATH}"`,
 			"--assetIndex",
 			`"${INDEX_VERSION}"`,
-			"--username",
-			`"${USERNAME}"`,
 			"--tweakClass",
 			`"net.minecraftforge.fml.common.launcher.FMLTweaker"`
 		].join(" ");
@@ -598,7 +618,7 @@ async function startMinecraft() {
 			console.log(command);
 		}
 
-		var minecraft = exec(command);
+		var minecraft = exec(command, {cwd: GAME_DIR});
 
 		minecraft.stdout.on("data", function (data) {
 			console.log(data.toString());
