@@ -5,8 +5,8 @@ const DEBUG = true;
 const asyncjs = require("async");
 const winston = require("winston");
 const urljoin = require("url-join");
+const Unrar = require("./unrar");
 const extract = require("extract-zip");
-const { randomBytes } = require("crypto");
 const sha1_file = require("sha1-file");
 const { exec, spawn, execSync } = require("child_process");
 const PIXEL_DIR = path.join(require("os").homedir(), ".pixel");
@@ -521,6 +521,7 @@ async function downloadCustomFolders() {
 	for (let folder of CUSTOM_FOLDERS) {
 		var folderPath = folder.path.split("/");
 		var folderURL = folder.url;
+        var folderUnpack = folder.unpack;
 
 		var folderParentDir = GAME_DIR;
 		for (var i = 0; i < folderPath.length - 1; i++) {
@@ -528,9 +529,22 @@ async function downloadCustomFolders() {
 			if (!fs.existsSync(folderParentDir)) fs.mkdirSync(folderParentDir);
 		}
 
+        var unpackDir;
+        if(folderUnpack) unpackDir = folderParentDir;
+
 		folderParentDir = path.join(folderParentDir, folderPath[folderPath.length - 1]);
 		logger.info(`Downloading custom file from: ${folderURL}`);
 		await download(folderURL, folderParentDir);
+
+        if(folderUnpack){
+            try {
+                await extract(folderParentDir, {dir: unpackDir});
+            }catch(err) {
+                new Unrar(folderParentDir).extract(unpackDir, null, () => {});
+            }
+
+        }
+
 	}
     await downloadConfigurations();
 }
@@ -595,7 +609,7 @@ async function startMinecraft() {
             `-XX:G1HeapRegionSize=32M`,
 			"-cp",
 			`"${LIBRARIES_PATH}"`,
-            `"-Dlog4j.configurationFile=${LOG_CONFIG}"`,
+            //`"-Dlog4j.configurationFile=${LOG_CONFIG}"`,
 			`"-Djava.library.path=${BIN_PATH}"`,
 			`"${MC_FORGE_LIBS["mainClass"]}"`,
 			"--username",

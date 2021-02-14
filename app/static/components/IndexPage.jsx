@@ -15,10 +15,12 @@ export default class Index extends React.Component {
 		this.prog = "Đang tải thông tin phiên bản...";
 		this.updateAvailable = null;
 		this.isNoticing = false;
+        this.downloading = false;
 		this.minRam = 2000;
 		this.maxRam = os.totalmem() / 1024 / 1024;
-		this.state = { memory: window.localStorage.getItem("memory") || this.minRam, updateAvailable: null };
-
+        var upAvail =  JSON.parse(window.sessionStorage.getItem("updateAvailable"));
+        console.log(upAvail);
+		this.state = { memory: window.localStorage.getItem("memory") || this.minRam, updateAvailable: upAvail == null ? null : upAvail };
 		var color = "#35c467";
 		var color2 = "#c92430";
 		var color3 = "#2877ed";
@@ -34,6 +36,7 @@ export default class Index extends React.Component {
 		ipcRenderer.on(channels.download.response, (e, d) => {
 			var btn = $("#play-button");
 			if (d) {
+                this.downloading = true;
 				btn.css("background-color", color);
 				btn.css("box-shadow", `-1px 2px 33px 1px ${color}`);
 			} else {
@@ -73,6 +76,7 @@ export default class Index extends React.Component {
 				btn.css("box-shadow", `-1px 2px 33px 1px ${color3}`);
 				var window = remote.getCurrentWindow();
 				window.hide();
+                this.downloading = false;
 			}, 3000);
 		});
 
@@ -85,7 +89,7 @@ export default class Index extends React.Component {
 	componentDidMount() {
 		$("#play-button").on("click", (e) => {
 			e.preventDefault();
-            if(this.state.updateAvailable == null || this.state.updateAvailable == true) return;
+            if(this.state.updateAvailable != false) return;
 			ipcRenderer.send(channels.download.request, this.state);
 		});
 
@@ -106,7 +110,7 @@ export default class Index extends React.Component {
 		});
 
 		$("#exit-button").on("click", (e) => {
-			if (this.isNoticing) return;
+			if (this.downloading || this.isNoticing || this.state.updateAvailable != false) return;
 			window.localStorage.removeItem("userdata");
 			this.setState({
 				redirect: "/"

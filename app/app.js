@@ -59,7 +59,7 @@ function mainWindow() {
 	mainWin.setMinimumSize(1280, 720);
 	mainWin.removeMenu();
 	mainWin.loadURL(startUrl);
-	//mainWin.webContents.openDevTools();
+//  mainWin.webContents.openDevTools();
 	mainWin.on("closed", function () {
 		mainWin = null;
 	});
@@ -68,12 +68,14 @@ function mainWindow() {
     });
 
     autoUpdater.on("update-available", () => {
+        mainWin.webContents.executeJavaScript(`sessionStorage.setItem("updateAvailable", true);`).then();
         mainWin.webContents.send(global.channels.update.available);
     });
 
     autoUpdater.on("update-not-available", () => {
+        mainWin.webContents.executeJavaScript(`sessionStorage.setItem("updateAvailable", false);`).then();
         mainWin.webContents.send(global.channels.update.unavailable);
-    })
+    });
 
     autoUpdater.on("update-downloaded", () => {
         autoUpdater.quitAndInstall();
