@@ -64,7 +64,9 @@ function mainWindow() {
 		mainWin = null;
 	});
     mainWin.on("ready-to-show", () => {
-        autoUpdater.checkForUpdates();
+        //autoUpdater.checkForUpdates();
+        mainWin.webContents.executeJavaScript(`sessionStorage.setItem("updateAvailable", false);`).then();
+        mainWin.webContents.send(global.channels.update.unavailable);
     });
 
     autoUpdater.on("update-available", () => {

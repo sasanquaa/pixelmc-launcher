@@ -54,11 +54,12 @@ export default class Index extends React.Component {
 			}
 		});
 
-		ipcRenderer.on(channels.download.progress, (e, progress) => {
+		ipcRenderer.on(channels.download.progress, (e, progress, size) => {
 			this.prog = progress;
 			if (!this.isNoticing) {
 				var btn = $("#play-button");
-				btn.html(`<h2>${progress}<h2/>`);
+				btn.html(`<h2>${progress}<h2/>` + (size == "" ? "" : `<h3>${size}</h3>`));
+
 			}
 		});
 

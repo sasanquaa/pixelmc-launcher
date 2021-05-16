@@ -1,9 +1,9 @@
 const path = require("path");
 const fs = require("fs");
-const https = require("https");
 const DEBUG = true;
 const asyncjs = require("async");
 const winston = require("winston");
+const request = require("request");
 const urljoin = require("url-join");
 const Unrar = require("./unrar");
 const extract = require("extract-zip");
@@ -14,7 +14,7 @@ const BIN_PATH = path.join(PIXEL_DIR, "bin");
 const FILES_PATH = path.join(PIXEL_DIR, "files");
 const NATIVE_WIN_PATH = path.join(FILES_PATH, "native-win");
 const APPDATA_DIR = process.env["APPDATA"];
-const GAME_DIR = path.join(APPDATA_DIR, ".minecraft");
+const GAME_DIR = path.join(APPDATA_DIR, ".pixelmc");
 const MOD_PATH = path.join(GAME_DIR, "mods");
 const LIB_PATH = path.join(GAME_DIR, "libraries");
 const META_PATH = path.join(GAME_DIR, "versions");
@@ -112,8 +112,8 @@ function init(appPath) {
 	});
 }
 
-function progress(msg) {
-	EVENT.reply(global.channels.download.progress, msg);
+function progress(msg, size = "") {
+	EVENT.reply(global.channels.download.progress, msg, size);
 }
 
 function error(msg) {
@@ -124,27 +124,41 @@ function finish() {
 	EVENT.reply(global.channels.download.finish);
 }
 
-function download(url, dest, success = null) {
+function download(url, dest, onSuccess = null, onPipe = null) {
 	return new Promise(function (resolve, reject) {
-		var file = fs.createWriteStream(dest);
-
-		file.once("open", function () {
-			https
-				.get(url, function (response) {
-					response.pipe(file).on("close", function () {
+		request({
+			url,
+			followAllRedirects: true,
+			method: "head"
+		})
+			.on("response", function (res) {
+				var totalSize = res.headers["content-length"];
+				var start = Date.now();
+				request({
+					url,
+					followAllRedirects: true
+				})
+					.on("data", function (src) {
+						var size = fs.statSync(dest).size + src.byteLength;
+						var elapsed = (Date.now() - start) / 1000;
+						var bps = size / elapsed;
+						var remaining = (totalSize - size) / bps;
+						var percent = Math.floor(size * 100 / totalSize);
+						if (onPipe) onPipe(size, percent, (bps * 1e-6).toFixed(2), remaining);
+					})
+					.pipe(fs.createWriteStream(dest))
+					.once("close", function () {
 						var buffer = fs.readFileSync(dest);
 						resolve(buffer);
-						if (success) success(buffer);
+						if (onSuccess) onSuccess(buffer);
+					})
+					.once("error", function (err) {
+						reject(err);
 					});
-				})
-				.once("error", function (err) {
-					reject(err);
-				});
-		});
-
-		file.once("error", function (err) {
-			reject(err);
-		});
+			})
+			.once("error", function (err) {
+				reject(err);
+			});
 	});
 }
 
@@ -173,6 +187,7 @@ async function downloadJava(version, isForge) {
 	progress(p9);
 	var jreURL;
 	var jrePath;
+	var jreSize;
 	var jreInstallDir;
 	var jreHash;
 	var jreInstallHash;
@@ -182,12 +197,14 @@ async function downloadJava(version, isForge) {
 		jrePath = JRE_64;
 		jreInstallDir = JRE_PATH_64;
 		jreHash = MC_FORGE_LIBS["jre_64"]["hash"];
+		jreSize = MC_FORGE_LIBS["jre_64"]["size"];
 		jreInstallHash = MC_FORGE_LIBS["jre_64"]["install_hash"];
 	} else {
 		jreURL = MC_FORGE_LIBS["jre_32"]["url"];
 		jrePath = JRE_32;
 		jreInstallDir = JRE_PATH_32;
 		jreHash = MC_FORGE_LIBS["jre_32"]["hash"];
+		jreSize = MC_FORGE_LIBS["jre_32"]["size"];
 		jreInstallHash = MC_FORGE_LIBS["jre_32"]["install_hash"];
 	}
 
@@ -204,7 +221,9 @@ async function downloadJava(version, isForge) {
 	} else {
 		if (!fs.existsSync(jrePath) || jreHash != sha1_file.sync(jrePath)) {
 			progress(p7);
-			await download(jreURL, jrePath);
+			await download(jreURL, jrePath, null, function (currentSize, currentPercent, mbps, time) {
+				progress(p7, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+			});
 		}
 
 		var command = [
@@ -249,12 +268,21 @@ async function downloadMods(version, isForge) {
 	var pxmSize = MC_FORGE_LIBS["pixelmon"]["size"];
 	var pxmHash = MC_FORGE_LIBS["pixelmon"]["hash"];
 
-	await download(modsURL, modsPath);
+	await download(modsURL, modsPath, null, function (currentSize, currentPercent, mbps, time) {
+		progress(p10, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+	});
 	await extract(modsPath, { dir: MOD_PATH });
 
 	if (!fs.existsSync(pxmPath) || pxmSize != fs.statSync(pxmPath).size || pxmHash != sha1_file.sync(pxmPath)) {
+		fs.readdirSync(MOD_PATH).forEach(function(name) {
+			if(/^(p|P)(i|I)(x|X)(e|E)(l|L)(m|M)(o|O)(n|N).+/.test(name)) {
+				fs.unlinkSync(path.join(MOD_PATH, name));
+			}
+		});
 		progress(p11);
-		await download(pxmURL, pxmPath);
+		await download(pxmURL, pxmPath, null, function (currentSize, currentPercent, mbps, time) {
+			progress(p11, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+		});
 	}
 
 	await downloadVersionMeta(version, isForge);
@@ -265,7 +293,9 @@ async function downloadVersionMeta(version, isForge) {
 	var VERSION_META_PATH = path.join(META_PATH, `${version}.json`);
 	logger.info("Retrieving version " + version + " meta from: " + VERSION_META_URL);
 	progress(p1);
-	var META = JSON.parse(await download(VERSION_META_URL, VERSION_META_PATH));
+	var META = JSON.parse(await download(VERSION_META_URL, VERSION_META_PATH, null, function (currentSize, currentPercent, mbps, time) {
+		progress(p11, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+	}));
 	INDEX_VERSION = META["assetIndex"].id;
 	await downloadBinaries(META["libraries"], isForge, META["assetIndex"]);
 }
@@ -273,7 +303,9 @@ async function downloadVersionMeta(version, isForge) {
 async function downloadBinaries(libraries, isForge, assetIndex) {
 	logger.info("Downloading binary files...");
 	progress(p2);
-	await download(MC_FORGE_LIBS["native-win"].url, NATIVE_WIN_PATH);
+	await download(MC_FORGE_LIBS["native-win"].url, NATIVE_WIN_PATH, null, function (currentSize, currentPercent, mbps, time) {
+		progress(p2, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+	});
 	await extract(NATIVE_WIN_PATH, { dir: BIN_PATH });
 	await downloadForge(libraries, isForge, assetIndex);
 }
@@ -309,8 +341,12 @@ async function downloadForge(libraries, isForge, assetIndex) {
 	forgeServerPath = path.join(LIB_PATH, ...forgeServerPath);
 	forgeClientPath = path.join(META_PATH, ...forgeClientPath);
 
-	await download(forgeServerURL, forgeServerPath);
-	await download(forgeClientURL, forgeClientPath);
+	await download(forgeServerURL, forgeServerPath, null, function (currentSize, currentPercent, mbps, time) {
+		progress(p2, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+	});
+	await download(forgeClientURL, forgeClientPath, null, function (currentSize, currentPercent, mbps, time) {
+		progress(p2, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+	});
 
 	DUPLICATE_LIBRARIES.add(forgeServerPath);
 	DUPLICATE_LIBRARIES.add(forgeClientPath);
@@ -359,7 +395,9 @@ async function downloadLibraries(libraries, isForge, assetIndex) {
 						sha1_file.sync(artifactPath) != artifactSHA1
 					) {
 						logger.info(`Downloading library from: ${artifactURL}`);
-						await download(artifactURL, artifactPath);
+						await download(artifactURL, artifactPath, null, function (currentSize, currentPercent, mbps, time) {
+							progress(p2, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+						});
 					}
 				}
 			}
@@ -390,7 +428,9 @@ async function downloadLibraries(libraries, isForge, assetIndex) {
 							sha1_file.sync(clsfPath) != clsfSHA1
 						) {
 							logger.info(`Downloading library from: ${clsfURL}`);
-							await download(clsfURL, clsfPath);
+							await download(clsfURL, clsfPath, null, function (currentSize, currentPercent, mbps, time) {
+								progress(p2, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+							});
 						}
 					}
 				}
@@ -436,7 +476,9 @@ async function downloadLibraries(libraries, isForge, assetIndex) {
 						sha1_file.sync(artifactPath) != artifactSHA1
 					) {
 						logger.info(`Downloading library from: ${artifactURL}`);
-						await download(artifactURL, artifactPath);
+						await download(artifactURL, artifactPath, null, function (currentSize, currentPercent, mbps, time) {
+							progress(p2, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+						});
 					}
 				}
 
@@ -496,7 +538,9 @@ async function downloadAssets(assetIndex) {
 					sha1_file.sync(objectPath) != objectHash
 				) {
 					logger.info(`Downloading resource from: ${objectURL}`);
-					await download(objectURL, objectPath);
+					await download(objectURL, objectPath, null, function (currentSize, currentPercent, mbps, time) {
+						progress(p3, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+					});
 				}
 				assetsValidate(objectPath, ASSETS);
 			}
@@ -521,7 +565,7 @@ async function downloadCustomFolders() {
 	for (let folder of CUSTOM_FOLDERS) {
 		var folderPath = folder.path.split("/");
 		var folderURL = folder.url;
-        var folderUnpack = folder.unpack;
+		var folderUnpack = folder.unpack;
 
 		var folderParentDir = GAME_DIR;
 		for (var i = 0; i < folderPath.length - 1; i++) {
@@ -529,32 +573,36 @@ async function downloadCustomFolders() {
 			if (!fs.existsSync(folderParentDir)) fs.mkdirSync(folderParentDir);
 		}
 
-        var unpackDir;
-        if(folderUnpack) unpackDir = folderParentDir;
+		var unpackDir;
+		if (folderUnpack) unpackDir = folderParentDir;
 
 		folderParentDir = path.join(folderParentDir, folderPath[folderPath.length - 1]);
 		logger.info(`Downloading custom file from: ${folderURL}`);
-		await download(folderURL, folderParentDir);
+		await download(folderURL, folderParentDir, null, function (currentSize, currentPercent, mbps, time) {
+			progress(p12, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+		});
 
-        if(folderUnpack){
-            try {
-                await extract(folderParentDir, {dir: unpackDir});
-            }catch(err) {
-                new Unrar(folderParentDir).extract(unpackDir, null, () => {});
-            }
+		if (folderUnpack) {
+			try {
+				await extract(folderParentDir, { dir: unpackDir });
+			} catch (err) {
+				new Unrar(folderParentDir).extract(unpackDir, null, () => { });
+			}
 
-        }
+		}
 
 	}
-    await downloadConfigurations();
+	await downloadConfigurations();
 }
 
 async function downloadConfigurations() {
-    var logURL = MC_FORGE_LIBS["logging"].url;
-    var logName = path.join(LOG_CONFIGS_PATH, MC_FORGE_LIBS["logging"].id);
-    LOG_CONFIG = logName;
-    logger.info(`Downloading logging configuration file from: ${logURL}`);
-    await download(logURL, logName);
+	var logURL = MC_FORGE_LIBS["logging"].url;
+	var logName = path.join(LOG_CONFIGS_PATH, MC_FORGE_LIBS["logging"].id);
+	LOG_CONFIG = logName;
+	logger.info(`Downloading logging configuration file from: ${logURL}`);
+	await download(logURL, logName, null, function (currentSize, currentPercent, mbps, time) {
+		progress(p12, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
+	});
 	logger.info("All resources fulfilled, now starting Minecraft...");
 	await startMinecraft();
 }
@@ -601,21 +649,21 @@ async function startMinecraft() {
 		var command = [
 			`"${JAVA}"`,
 			`-Xmx${MEMORY}M`,
-            `-XX:+UnlockExperimentalVMOptions`,
-            `-XX:+UseG1GC`,
-            `-XX:G1NewSizePercent=20`,
-            `-XX:G1ReservePercent=20`,
-            `-XX:MaxGCPauseMillis=50`,
-            `-XX:G1HeapRegionSize=32M`,
+			`-XX:+UnlockExperimentalVMOptions`,
+			`-XX:+UseG1GC`,
+			`-XX:G1NewSizePercent=20`,
+			`-XX:G1ReservePercent=20`,
+			`-XX:MaxGCPauseMillis=50`,
+			`-XX:G1HeapRegionSize=32M`,
 			"-cp",
 			`"${LIBRARIES_PATH}"`,
-            //`"-Dlog4j.configurationFile=${LOG_CONFIG}"`,
+			//`"-Dlog4j.configurationFile=${LOG_CONFIG}"`,
 			`"-Djava.library.path=${BIN_PATH}"`,
 			`"${MC_FORGE_LIBS["mainClass"]}"`,
 			"--username",
 			`"${USERNAME}"`,
 			"--version",
-            `"1.12.2"`,
+			`"1.12.2"`,
 			"--gameDir",
 			`"${GAME_DIR}"`,
 			"--accessToken",
@@ -632,7 +680,7 @@ async function startMinecraft() {
 			console.log(command);
 		}
 
-		var minecraft = exec(command, {cwd: GAME_DIR});
+		var minecraft = exec(command, { cwd: GAME_DIR });
 
 		minecraft.stdout.on("data", function (data) {
 			console.log(data.toString());
