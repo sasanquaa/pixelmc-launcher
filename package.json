@@ -1,6 +1,6 @@
 {
 	"name": "pixelmc-launcher",
-	"version": "1.1.6",
+	"version": "1.1.7",
 	"description": "Pixel Launcher",
 	"main": "./app/app.js",
 	"productName": "Pixel Launcher",
@@ -46,8 +46,9 @@
 		"electron-start": "set ELECTRON_START_URL=http://localhost:3000 && electron .",
 		"pack": "electron-builder --dir",
 		"dist": "electron-builder",
-		"package": "react-app-rewired build && rm -rf build/.minecraft/mods && rm -rf build/.minecraft/resourcepacks && rm -rf build/.minecraft/saves && rm -rf build/static/components build/static/html build/static/js/react-entry.js && electron-builder --win -c.extraMetadata.main=build/app.js --publish never",
-		"release": "react-app-rewired build && rm -rf build/.minecraft/mods && rm -rf build/.minecraft/resourcepacks && rm -rf build/.minecraft/saves && rm -rf build/static/components build/static/html build/static/js/react-entry.js && electron-builder --win -c.extraMetadata.main=build/app.js --publish always"
+		"package": "react-app-rewired build && rd /s /q \"build/static/components\" \"build/static/html\" && del /s \"build\\static\\js\\react-entry.js\" && electron-builder --win -c.extraMetadata.main=build/app.js --publish never",
+		"package-32bit": "react-app-rewired build && rd /s /q \"build/static/components\" \"build/static/html\" && del /s \"build\\static\\js\\react-entry.js\" && electron-builder --ia32 -c.extraMetadata.main=build/app.js --publish never",
+		"release": "react-app-rewired build && rd /s /q \"build/static/components\" \"build/static/html\" && del /s \"build\\static\\js\\react-entry.js\" && electron-builder --win -c.extraMetadata.main=build/app.js --publish always"
 	},
 	"author": "SASANQUA",
 	"license": "ISC",

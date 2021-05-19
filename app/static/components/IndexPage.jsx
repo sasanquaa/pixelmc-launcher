@@ -16,7 +16,7 @@ export default class Index extends React.Component {
 		this.updateAvailable = null;
 		this.isNoticing = false;
         this.downloading = false;
-		this.minRam = 2000;
+		this.minRam = 128;
 		this.maxRam = os.totalmem() / 1024 / 1024;
         var upAvail =  JSON.parse(window.sessionStorage.getItem("updateAvailable"));
         console.log(upAvail);
@@ -81,9 +81,16 @@ export default class Index extends React.Component {
 			}, 3000);
 		});
 
-		ipcRenderer.on(channels.game.exited, (e) => {
+		ipcRenderer.on(channels.game.exited, (e, code) => {
 			var window = remote.getCurrentWindow();
 			window.show();
+			switch(parseInt(code)) {
+				case 0:
+					break;
+				case 1:
+					ipcRenderer.send(channels.window.notification, "Đã có lỗi bất ngờ xảy ra!");
+					break;
+			}
 		});
 	}
 

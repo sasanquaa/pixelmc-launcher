@@ -14,7 +14,7 @@ const BIN_PATH = path.join(PIXEL_DIR, "bin");
 const FILES_PATH = path.join(PIXEL_DIR, "files");
 const NATIVE_WIN_PATH = path.join(FILES_PATH, "native-win");
 const APPDATA_DIR = process.env["APPDATA"];
-const GAME_DIR = path.join(APPDATA_DIR, ".pixelmc");
+const GAME_DIR = path.join(APPDATA_DIR, ".pixelmc", "profiles", "pixelmon");
 const MOD_PATH = path.join(GAME_DIR, "mods");
 const LIB_PATH = path.join(GAME_DIR, "libraries");
 const META_PATH = path.join(GAME_DIR, "versions");
@@ -80,7 +80,7 @@ const p12 = "Đang tải các thư mục...";
 function init(appPath) {
 	if (!fs.existsSync(PIXEL_DIR)) fs.mkdirSync(PIXEL_DIR);
 	if (!fs.existsSync(FILES_PATH)) fs.mkdirSync(FILES_PATH);
-	if (!fs.existsSync(GAME_DIR)) fs.mkdirSync(GAME_DIR);
+	if (!fs.existsSync(GAME_DIR)) fs.mkdirSync(GAME_DIR, { recursive: true });
 	if (!fs.existsSync(MOD_PATH)) fs.mkdirSync(MOD_PATH);
 	if (!fs.existsSync(ASSETS_PATH)) fs.mkdirSync(ASSETS_PATH);
 	if (!fs.existsSync(OBJECTS_PATH)) fs.mkdirSync(OBJECTS_PATH);
@@ -692,7 +692,7 @@ async function startMinecraft() {
 
 		minecraft.on("exit", function (code) {
 			console.log("Minecraft process exited with code: " + code.toString());
-			EVENT.reply(global.channels.game.exited);
+			EVENT.reply(global.channels.game.exited, code.toString());
 		});
 	} catch (err) {
 		logger.info(err);

@@ -25,7 +25,8 @@ global.channels = {
 		save: "data-save"
 	},
 	window: {
-		resize: "window-resize"
+		resize: "window-resize",
+		notification: "window-notification"
 	},
     update: {
         available: "update-available",
@@ -43,7 +44,7 @@ const startUrl =
 
 function mainWindow() {
 	mainWin = new BrowserWindow({
-		width: 1280,
+		width: 720,
 		height: 720,
 		minWidth: 720,
 		minHeight: 720,
@@ -87,6 +88,9 @@ function mainWindow() {
 }
 
 app.on("ready", () => {
+	if(process.platform == "win32") {
+		app.setAppUserModelId("PixelMC");
+	}
 	mainWindow();
 	init(app.getAppPath());
 });
@@ -105,8 +109,9 @@ app.on("activate", () => {
 
 function showNotification(msg) {
 	const notification = {
-		title: "PixelMC",
-		body: msg
+		title: "Tin nhắn",
+		body: msg,
+		icon: "app/static/media/faviconx256.ico"
 	};
 	new Notification(notification).show();
 }
@@ -148,6 +153,10 @@ ipcMain.on(global.channels.window.resize, function (e, args) {
 			break;
 	}
 	mainWin.setSize(data.width, data.height);
+});
+
+ipcMain.on(global.channels.window.notification, function (e, msg) {
+	showNotification(msg);
 });
 
 try {
