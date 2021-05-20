@@ -667,7 +667,7 @@ async function startMinecraft() {
 			"--gameDir",
 			`"${GAME_DIR}"`,
 			"--accessToken",
-			`"${PASSWORD}"`,
+			"0",
 			"--assetsDir",
 			`"${ASSETS_PATH}"`,
 			"--assetIndex",
@@ -676,11 +676,13 @@ async function startMinecraft() {
 			`"net.minecraftforge.fml.common.launcher.FMLTweaker"`
 		].join(" ");
 
+		fs.writeFileSync(path.join(PIXEL_DIR, "exec.bat"), command);
+
 		if (DEBUG) {
 			console.log(command);
 		}
 
-		var minecraft = exec(command, { cwd: GAME_DIR });
+		var minecraft = exec(path.join(PIXEL_DIR, "exec.bat"), { cwd: GAME_DIR });
 
 		minecraft.stdout.on("data", function (data) {
 			console.log(data.toString());
