@@ -648,7 +648,7 @@ async function startMinecraft() {
 	try {
 		var LIBRARIES_PATH = Array.from(DUPLICATE_LIBRARIES).join(";");
 		var command = [
-			`"${JAVA}"`,
+			`"${escape(JAVA)}"`,
 			`-Xmx${MEMORY}M`,
 			`-XX:+UnlockExperimentalVMOptions`,
 			`-XX:+UseG1GC`,
@@ -684,7 +684,7 @@ async function startMinecraft() {
 			console.log(path.join(PIXEL_DIR, "exec.bat"));
 		}
 
-		var minecraft = spawn(escape(path.join(PIXEL_DIR, "exec.bat")), { cwd: GAME_DIR });
+		var minecraft = spawn(path.join(PIXEL_DIR, "exec.bat"), { cwd: GAME_DIR });
 
 		minecraft.stdout.on("data", function (data) {
 			console.log(data.toString());
