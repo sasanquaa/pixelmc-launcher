@@ -5,6 +5,7 @@ const asyncjs = require("async");
 const winston = require("winston");
 const request = require("request");
 const urljoin = require("url-join");
+const escape = require("escape-path-with-spaces");
 const Unrar = require("./unrar");
 const extract = require("extract-zip");
 const sha1_file = require("sha1-file");
@@ -683,7 +684,7 @@ async function startMinecraft() {
 			console.log(path.join(PIXEL_DIR, "exec.bat"));
 		}
 
-		var minecraft = spawn(path.join(PIXEL_DIR, "exec.bat"), { cwd: GAME_DIR });
+		var minecraft = spawn(escape(path.join(PIXEL_DIR, "exec.bat")), { cwd: GAME_DIR });
 
 		minecraft.stdout.on("data", function (data) {
 			console.log(data.toString());
