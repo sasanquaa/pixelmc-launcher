@@ -680,9 +680,10 @@ async function startMinecraft() {
 
 		if (DEBUG) {
 			console.log(command);
+			console.log(path.join(PIXEL_DIR, "exec.bat"));
 		}
 
-		var minecraft = execFile(path.join(PIXEL_DIR, "exec.bat"), { cwd: GAME_DIR });
+		var minecraft = spawn(path.join(PIXEL_DIR, "exec.bat"), { cwd: GAME_DIR });
 
 		minecraft.stdout.on("data", function (data) {
 			console.log(data.toString());
