@@ -8,7 +8,7 @@ const urljoin = require("url-join");
 const Unrar = require("./unrar");
 const extract = require("extract-zip");
 const sha1_file = require("sha1-file");
-const { exec, spawn, execSync } = require("child_process");
+const { exec, spawn, execFile } = require("child_process");
 const PIXEL_DIR = path.join(require("os").homedir(), ".pixel");
 const BIN_PATH = path.join(PIXEL_DIR, "bin");
 const FILES_PATH = path.join(PIXEL_DIR, "files");
@@ -682,7 +682,7 @@ async function startMinecraft() {
 			console.log(command);
 		}
 
-		var minecraft = exec(path.join(PIXEL_DIR, "exec.bat"), { cwd: GAME_DIR });
+		var minecraft = execFile(path.join(PIXEL_DIR, "exec.bat"), { cwd: GAME_DIR });
 
 		minecraft.stdout.on("data", function (data) {
 			console.log(data.toString());
