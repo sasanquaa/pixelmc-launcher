@@ -649,7 +649,7 @@ async function startMinecraft() {
 		var LIBRARIES_PATH = Array.from(DUPLICATE_LIBRARIES).join(";");
 		var command = [
 			"-Command",
-			`${escape(JAVA)}`,
+			`& "${JAVA}"`,
 			`-Xmx${MEMORY}M`,
 			`-XX:+UnlockExperimentalVMOptions`,
 			`-XX:+UseG1GC`,
