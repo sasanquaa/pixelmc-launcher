@@ -648,7 +648,8 @@ async function startMinecraft() {
 	try {
 		var LIBRARIES_PATH = Array.from(DUPLICATE_LIBRARIES).join(";");
 		var command = [
-			`"${escape(JAVA)}"`,
+			"-Command",
+			`${escape(JAVA)}`,
 			`-Xmx${MEMORY}M`,
 			`-XX:+UnlockExperimentalVMOptions`,
 			`-XX:+UseG1GC`,
@@ -658,7 +659,6 @@ async function startMinecraft() {
 			`-XX:G1HeapRegionSize=32M`,
 			"-cp",
 			`"${LIBRARIES_PATH}"`,
-			//`"-Dlog4j.configurationFile=${LOG_CONFIG}"`,
 			`"-Djava.library.path=${BIN_PATH}"`,
 			`"${MC_FORGE_LIBS["mainClass"]}"`,
 			"--username",
@@ -675,16 +675,16 @@ async function startMinecraft() {
 			`"${INDEX_VERSION}"`,
 			"--tweakClass",
 			`"net.minecraftforge.fml.common.launcher.FMLTweaker"`
-		].join(" ");
+		];
 
-		fs.writeFileSync(path.join(PIXEL_DIR, "exec.bat"), command);
+		//fs.writeFileSync(path.join(PIXEL_DIR, "exec.bat"), command);
 
 		if (DEBUG) {
-			console.log(command);
+			//console.log(command);
 			console.log(path.join(PIXEL_DIR, "exec.bat"));
 		}
 
-		var minecraft = spawn(path.join(PIXEL_DIR, "exec.bat"), { cwd: GAME_DIR });
+		var minecraft = spawn("powershell.exe", command , { cwd: GAME_DIR });
 
 		minecraft.stdout.on("data", function (data) {
 			console.log(data.toString());
