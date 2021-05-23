@@ -9,6 +9,8 @@ const escape = require("escape-path-with-spaces");
 const Unrar = require("./unrar");
 const extract = require("extract-zip");
 const sha1_file = require("sha1-file");
+const findJavaHome = require("find-java-home");
+const {promisify } = require("util");
 const { exec, spawn, execFile } = require("child_process");
 const PIXEL_DIR = path.join(require("os").homedir(), ".pixel");
 const BIN_PATH = path.join(PIXEL_DIR, "bin");
@@ -209,6 +211,12 @@ async function downloadJava(version, isForge) {
 		jreInstallHash = MC_FORGE_LIBS["jre_32"]["install_hash"];
 	}
 
+	try {
+		JAVA = path.join(await promisify(findJavaHome)({allowJre: true}), "bin", "java.exe");
+		await downloadMods(version, isForge);
+		return;
+	}catch(err) {}
+
 	JAVA = path.join(jreInstallDir, "bin", "java.exe");
 
 	if (DEBUG) {
@@ -216,6 +224,7 @@ async function downloadJava(version, isForge) {
 		logger.info(`jreHash: ${jreHash}`);
 		logger.info(`jreInstallHash: ${jreInstallHash}`);
 	}
+
 
 	if (fs.existsSync(JAVA)) {
 		await downloadMods(version, isForge);
