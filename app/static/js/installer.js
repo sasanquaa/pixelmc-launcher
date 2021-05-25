@@ -211,11 +211,13 @@ async function downloadJava(version, isForge) {
 		jreInstallHash = MC_FORGE_LIBS["jre_32"]["install_hash"];
 	}
 
+	/*
 	try {
 		JAVA = path.join(await promisify(findJavaHome)({allowJre: true}), "bin", "java.exe");
 		await downloadMods(version, isForge);
 		return;
 	}catch(err) {}
+	*/
 
 	JAVA = path.join(jreInstallDir, "bin", "java.exe");
 
