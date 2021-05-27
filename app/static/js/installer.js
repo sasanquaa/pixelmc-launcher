@@ -275,10 +275,10 @@ async function downloadMods(version, isForge) {
 	progress(p10);
 	var modsURL = MC_FORGE_LIBS["mods"]["url"];
 	var modsPath = path.join(FILES_PATH, "mods");
-	var pxmPath = path.join(MOD_PATH, MC_FORGE_LIBS["pixelmon"]["name"]);
-	var pxmURL = MC_FORGE_LIBS["pixelmon"]["url"];
-	var pxmSize = MC_FORGE_LIBS["pixelmon"]["size"];
-	var pxmHash = MC_FORGE_LIBS["pixelmon"]["hash"];
+	var pxmPath = path.join(MOD_PATH, MC_FORGE_LIBS["pixelmon2"]["name"]);
+	var pxmURL = MC_FORGE_LIBS["pixelmon2"]["url"];
+	var pxmSize = MC_FORGE_LIBS["pixelmon2"]["size"];
+	var pxmHash = MC_FORGE_LIBS["pixelmon2"]["hash"];
 
 	await download(modsURL, modsPath, null, function (currentSize, currentPercent, mbps, time) {
 		progress(p10, `${currentPercent} % - ${mbps} MB/s - ${Math.floor(time / 60)}m${Math.floor(time % 60)}s`);
