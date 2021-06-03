@@ -688,10 +688,7 @@ async function startMinecraft() {
 			`"net.minecraftforge.fml.common.launcher.FMLTweaker"`
 		];
 
-		//fs.writeFileSync(path.join(PIXEL_DIR, "exec.bat"), command);
-
 		if (DEBUG) {
-			//console.log(command);
 			console.log(path.join(PIXEL_DIR, "exec.bat"));
 		}
 

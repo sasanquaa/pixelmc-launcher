@@ -122,7 +122,6 @@ dialog.showErrorBox = function (title, content) {
 
 ipcMain.on(global.channels.download.request, function (e, args) {
 	mainWin.webContents.executeJavaScript('localStorage.getItem("userdata");', true).then((result) => {
-		//console.log(result);
 		var user = JSON.parse(result);
 		var username = user.username;
 		var password = user.password;
